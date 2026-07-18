@@ -12,10 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
-    from app.models.family import Family
     from app.models.item import ClothingItem
     from app.models.learning import UserLearningProfile
-    from app.models.notification import NotificationSettings
     from app.models.outfit import Outfit
     from app.models.preference import UserPreference
     from app.models.schedule import Schedule
@@ -27,14 +25,11 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    family_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("families.id", ondelete="SET NULL")
-    )
     external_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
-    role: Mapped[str] = mapped_column(String(20), default="member")
+    role: Mapped[str] = mapped_column(String(20), default="member") #TODO delete?
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
 
     # Location for weather
@@ -53,14 +48,8 @@ class User(Base):
     )
 
     # Relationships
-    family: Mapped[Optional["Family"]] = relationship(
-        "Family", back_populates="members", foreign_keys=[family_id]
-    )
     preferences: Mapped[Optional["UserPreference"]] = relationship(
         "UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
-    notification_settings: Mapped[list["NotificationSettings"]] = relationship(
-        "NotificationSettings", back_populates="user", cascade="all, delete-orphan"
     )
     schedules: Mapped[list["Schedule"]] = relationship(
         "Schedule", back_populates="user", cascade="all, delete-orphan"

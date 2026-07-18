@@ -89,7 +89,6 @@ async def get_current_session(
         external_id=user.external_id,
         email=user.email,
         display_name=user.display_name,
-        family_id=user.family_id,
         role=user.role,
     )
 

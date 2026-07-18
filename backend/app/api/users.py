@@ -26,7 +26,6 @@ class UserProfileResponse(BaseModel):
     location_lat: float | None = None
     location_lon: float | None = None
     location_name: str | None = None
-    family_id: str | None = None
     role: str
     onboarding_completed: bool
     body_measurements: dict | None = None
@@ -85,7 +84,6 @@ def _user_response(user: User) -> UserProfileResponse:
         location_lat=float(user.location_lat) if user.location_lat else None,
         location_lon=float(user.location_lon) if user.location_lon else None,
         location_name=user.location_name,
-        family_id=str(user.family_id) if user.family_id else None,
         role=user.role,
         onboarding_completed=user.onboarding_completed,
         body_measurements=user.body_measurements,

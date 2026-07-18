@@ -9,7 +9,6 @@ from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem, ItemStatus
 from app.models.outfit import (
-    FamilyOutfitRating,
     Outfit,
     OutfitItem,
     OutfitSource,
@@ -126,7 +125,6 @@ class StudioService:
             .options(
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
                 selectinload(Outfit.feedback),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
         )
         return result.scalar_one()

@@ -73,10 +73,3 @@ export interface UserPreferences {
   avoid_repeat_days: number;
   variety_level: 'low' | 'moderate' | 'high';
 }
-
-export interface Family {
-  id: string;
-  name: string;
-  invite_code: string;
-  created_at: string;
-}

@@ -33,8 +33,6 @@ import { useWeather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
-import { useSchedules, useNotificationSettings } from '@/lib/hooks/use-notifications';
-import { useFamily } from '@/lib/hooks/use-family';
 import { toast } from 'sonner';
 
 function WeatherCard() {
@@ -253,186 +251,6 @@ function PendingOutfitsCard() {
   );
 }
 
-function NextScheduledCard() {
-  const { data: schedules, isLoading } = useSchedules();
-
-  const nextSchedule = useMemo(() => {
-    if (!schedules || schedules.length === 0) return null;
-
-    const enabledSchedules = schedules.filter((s) => s.enabled);
-    if (enabledSchedules.length === 0) return null;
-
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    // Find the next scheduled notification
-    let closest: { schedule: typeof enabledSchedules[0]; daysUntil: number; minutesUntil: number } | null = null;
-
-    for (const schedule of enabledSchedules) {
-      const [hours, minutes] = schedule.notification_time.split(':').map(Number);
-      const scheduleMinutes = hours * 60 + minutes;
-
-      let daysUntil = schedule.day_of_week - currentDay;
-      if (daysUntil < 0 || (daysUntil === 0 && scheduleMinutes <= currentTime)) {
-        daysUntil += 7;
-      }
-
-      const minutesUntil = daysUntil === 0 ? scheduleMinutes - currentTime : scheduleMinutes;
-
-      if (!closest || daysUntil < closest.daysUntil || (daysUntil === closest.daysUntil && minutesUntil < closest.minutesUntil)) {
-        closest = { schedule, daysUntil, minutesUntil };
-      }
-    }
-
-    return closest;
-  }, [schedules]);
-
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Next Scheduled
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-6 w-32 mb-1" />
-          <Skeleton className="h-4 w-24" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!nextSchedule) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Next Scheduled
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">No schedules set up</p>
-          <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/notifications">Set Up Schedule</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const { schedule, daysUntil } = nextSchedule;
-  const timeStr = schedule.notification_time.slice(0, 5);
-  const dayStr = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : dayNames[schedule.day_of_week];
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          Next Scheduled
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="font-semibold">
-          {dayStr} at {timeStr}
-        </p>
-        <p className="text-sm text-muted-foreground capitalize">
-          {schedule.occasion} outfit
-        </p>
-        {daysUntil === 0 && (
-          <Badge variant="secondary" className="mt-2">Coming up</Badge>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function NotificationStatusCard() {
-  const { data: settings, isLoading } = useNotificationSettings();
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-24" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const channels = settings || [];
-  const enabledChannels = channels.filter((c) => c.enabled);
-
-  if (channels.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BellOff className="h-4 w-4 text-muted-foreground" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">No channels configured</p>
-          <Button size="sm" variant="outline" asChild>
-            <Link href="/dashboard/notifications">Add Channel</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </CardTitle>
-          <Link href="/dashboard/notifications" className="text-xs text-muted-foreground hover:text-foreground">
-            Configure
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          {channels.map((channel) => (
-            <Badge
-              key={channel.id}
-              variant={channel.enabled ? 'default' : 'outline'}
-              className={channel.enabled ? '' : 'text-muted-foreground'}
-            >
-              {channel.enabled ? (
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-              ) : (
-                <XCircle className="h-3 w-3 mr-1" />
-              )}
-              {channel.channel}
-            </Badge>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {enabledChannels.length} of {channels.length} active
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function WeeklySummaryCard() {
   const { data: analytics, isLoading } = useAnalytics();
 
@@ -549,43 +367,6 @@ function InsightsCard() {
   );
 }
 
-function FamilyFeedCard() {
-  const { data: family, isLoading } = useFamily();
-
-  if (isLoading) return null;
-
-  // Don't show if user has no family
-  if (!family) return null;
-
-  const memberCount = family.members.length;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <HeartHandshake className="h-5 w-5" />
-          Family Outfits
-        </CardTitle>
-        <CardDescription>
-          See what your family is wearing and rate their outfits
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{memberCount} member{memberCount !== 1 ? 's' : ''} in {family.name}</span>
-        </div>
-        <Button asChild className="w-full">
-          <Link href="/dashboard/family/feed">
-            Browse Family Outfits
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 function QuickActionsCard() {
   return (
     <Card>
@@ -629,13 +410,11 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <WeatherCard />
         <PendingOutfitsCard />
-        <NextScheduledCard />
       </div>
 
-      {/* Second row - Weekly Summary + Notification Status */}
+      {/* Second row - Weekly Summary */}
       <div className="grid gap-4 md:grid-cols-2">
         <WeeklySummaryCard />
-        <NotificationStatusCard />
       </div>
 
       {/* Third row - Quick Actions + Insights */}
@@ -643,9 +422,6 @@ export default function DashboardPage() {
         <QuickActionsCard />
         <InsightsCard />
       </div>
-
-      {/* Family feed card */}
-      <FamilyFeedCard />
     </div>
   );
 }

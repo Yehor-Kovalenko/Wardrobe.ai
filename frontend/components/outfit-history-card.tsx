@@ -231,20 +231,6 @@ export function OutfitHistoryCard({ outfit, onFeedback, onPreview }: OutfitHisto
           </div>
         )}
 
-        {/* Family ratings summary */}
-        {outfit.family_rating_count != null && outfit.family_rating_count > 0 && (
-          <div className="mt-2 pt-2 border-t">
-            <div className="flex items-center gap-2 text-xs">
-              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Family:</span>
-              <StarRating rating={Math.round(outfit.family_rating_average ?? 0)} />
-              <span className="text-muted-foreground">
-                ({outfit.family_rating_count})
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Details section */}
         {(outfit.reasoning || outfit.style_notes || (outfit.highlights && outfit.highlights.length > 0)) && (
           <div className="mt-2 space-y-2 text-xs flex-1">

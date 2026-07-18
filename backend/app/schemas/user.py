@@ -30,10 +30,8 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
-
     id: UUID
     external_id: str
-    family_id: UUID | None = None
     role: str
     is_active: bool
     onboarding_completed: bool
@@ -69,7 +67,6 @@ class SessionUser(BaseModel):
     external_id: str
     email: str
     display_name: str
-    family_id: UUID | None = None
     role: str
 
 

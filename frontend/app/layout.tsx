@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Wardrowbe',
+  title: 'Wardrobe.ai',
   description: 'AI-powered wardrobe management and outfit recommendations',
   icons: {
     icon: [

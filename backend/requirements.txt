@@ -29,9 +29,6 @@ watchfiles>=0.21.0  # Hot reload for worker in development
 # Scheduling
 apscheduler>=3.10.4
 
-# Notifications
-aiosmtplib>=3.0.1
-
 # Utilities
 tenacity>=8.2.3
 python-dateutil>=2.8.2

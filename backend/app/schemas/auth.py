@@ -16,6 +16,5 @@ class AuthSession(BaseModel):
     external_id: str
     email: str
     display_name: str
-    family_id: UUID | None = None
     role: str
     is_authenticated: bool = True

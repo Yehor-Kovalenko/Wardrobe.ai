@@ -1,41 +1,3 @@
-<p align="center">
-  <img src="./frontend/public/logo.svg" alt="wardrowbe" width="120" height="120">
-</p>
-
-<h1 align="center">wardrowbe</h1>
-
-<p align="center">
-  Put your wardrobe in rows. Snap. Organize. Wear.
-</p>
-<p align="center">
-  <a href="https://claude.ai/code"><img src="https://img.shields.io/badge/Built%20with%20Claude%20Code-D97757?style=for-the-badge&logo=claude&logoColor=white" alt="Built with Claude Code"></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js"></a>
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-</p>
-
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#deployment">Deployment</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#contributing">Contributing</a>
-</p>
-
-<p align="center">
-  <a href="https://buymeacoffee.com/anyesh">
-    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee">
-  </a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Google%20Play-Coming%20Soon-34A853?style=for-the-badge&logo=googleplay&logoColor=white" alt="Google Play - Coming Soon">
-  &nbsp;
-  <a href="https://apps.apple.com/us/app/wardrowbe/id6759947671">
-    <img src="https://img.shields.io/badge/App%20Store-0D96F6?style=for-the-badge&logo=appstore&logoColor=white" alt="App Store">
-  </a>
-</p>
 
 Self-hosted wardrobe management with AI-powered outfit recommendations. Take photos of your clothes, let AI tag them, and get daily outfit suggestions based on weather and occasion.
 
@@ -44,7 +6,6 @@ Self-hosted wardrobe management with AI-powered outfit recommendations. Take pho
 - **Photo-based wardrobe** - Upload photos, AI extracts clothing details automatically
 - **Smart recommendations** - Outfits matched to weather, occasion, and your preferences
 - **Scheduled notifications** - Daily outfit suggestions via ntfy/Mattermost/email
-- **Family support** - Manage wardrobes for household members
 - **Wear tracking** - History, ratings, and outfit feedback
 - **Analytics** - See what you wear, what you don't, color distribution
 - **Fully self-hosted** - Your data stays on your hardware
@@ -556,37 +517,6 @@ docker compose exec redis redis-cli ping
 # - For Ollama: Use smaller quantized models
 # - For OpenAI: Check your rate limits
 ```
-
-### Getting Help
-
-If you're still stuck:
-1. Check existing [GitHub Issues](https://github.com/yourusername/wardrowbe/issues)
-2. Search [Discussions](https://github.com/yourusername/wardrowbe/discussions)
-3. Create a new issue with:
-   - Output of `docker compose ps`
-   - Relevant logs from `docker compose logs`
-   - Your .env configuration (redact secrets!)
-   - Steps to reproduce the problem
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=Anyesh%2Fwardrowbe&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Anyesh/wardrowbe&type=date&legend=top-left" />
- </picture>
-</a>
- 
-## Support
-
-If you find wardrowbe useful, consider supporting its development:
-
-<a href="https://buymeacoffee.com/anyesh"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee"></a>
 
 ## License
 

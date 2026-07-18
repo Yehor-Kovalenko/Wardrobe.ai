@@ -9,7 +9,6 @@ from sqlalchemy.orm import selectinload
 
 from app.models.item import ClothingItem
 from app.models.outfit import (
-    FamilyOutfitRating,
     Outfit,
     OutfitItem,
     OutfitSource,
@@ -30,7 +29,6 @@ class OutfitListFilters:
     is_replacement: bool | None = None
     has_source_item: bool | None = None
     item_type: str | None = None
-    family_member_view: bool = False
     search: str | None = None
     cloned_from_outfit_id: UUID | None = None
 
@@ -61,16 +59,12 @@ class OutfitService:
             .options(
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
                 selectinload(Outfit.feedback),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
         )
         return refreshed.scalar_one()
 
     def _build_filter_clauses(self, filters: OutfitListFilters) -> list:
         clauses = [Outfit.user_id == filters.user_id]
-
-        if filters.family_member_view:
-            clauses.append(Outfit.scheduled_for.is_not(None))
 
         if filters.status_filter:
             parsed_statuses: list[OutfitStatus] = []
@@ -145,7 +139,6 @@ class OutfitService:
             .options(
                 selectinload(Outfit.items).selectinload(OutfitItem.item),
                 selectinload(Outfit.feedback),
-                selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
             )
             .order_by(Outfit.created_at.desc())
             .offset((page - 1) * page_size)
@@ -155,23 +148,3 @@ class OutfitService:
         result = await self.db.execute(query)
         outfits = list(result.scalars().all())
         return outfits, total
-
-    async def verify_family_access(self, current_user: User, family_member_id: UUID) -> UUID:
-        if not current_user.family_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "message": "You must be in a family to view family member outfits",
-                    "error_code": "NOT_IN_FAMILY",
-                },
-            )
-        member_result = await self.db.execute(
-            select(User).where(User.id == family_member_id, User.is_active == True)  # noqa: E712
-        )
-        member = member_result.scalar_one_or_none()
-        if not member or member.family_id != current_user.family_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not in your family",
-            )
-        return family_member_id

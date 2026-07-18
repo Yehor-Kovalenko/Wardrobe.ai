@@ -65,16 +65,6 @@ class Settings(BaseSettings):
     openmeteo_url: str = Field(default="https://api.open-meteo.com/v1")
     geocoding_user_agent: str | None = Field(default=None)
 
-    # Notifications - default ntfy channel (used when user has none configured)
-    ntfy_server: str | None = None
-    ntfy_topic: str | None = None
-    ntfy_token: str | None = None
-    # Legacy/other providers
-    mattermost_webhook_url: str | None = None
-    smtp_host: str | None = None
-    smtp_port: int = 587
-    smtp_user: str | None = None
-    smtp_password: str | None = None
     # Storage
     storage_path: str = Field(default="/data/wardrobe")
     max_upload_size_mb: int = Field(default=10)

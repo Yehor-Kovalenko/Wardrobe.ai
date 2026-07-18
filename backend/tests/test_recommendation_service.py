@@ -226,7 +226,6 @@ class TestSuggestEndpointRuntime:
             source=OutfitSource.on_demand,
         )
         outfit.feedback = None
-        outfit.family_ratings = []
         outfit.items = [OutfitItem(item=item, position=0, layer_type=None)]
 
         db_session.add_all([item, outfit])

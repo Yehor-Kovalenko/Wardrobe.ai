@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import User
-from app.services.family_service import FamilyService
 from app.services.image_service import ImageService
 from app.utils.auth import get_current_user_optional
 from app.utils.signed_urls import verify_signature
@@ -51,12 +50,6 @@ async def get_image(
     if not can_access and current_user:
         if str(current_user.id) == user_id:
             can_access = True
-        elif current_user.family_id:
-            family_service = FamilyService(db)
-            family = await family_service.get_by_id(current_user.family_id)
-            if family:
-                family_user_ids = [str(m.id) for m in family.members]
-                can_access = user_id in family_user_ids
 
     if not can_access:
         raise HTTPException(

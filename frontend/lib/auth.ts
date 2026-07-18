@@ -100,7 +100,7 @@ export const authOptions: NextAuthOptions = {
   providers: getProviders(),
   callbacks: {
     async jwt({ token, user, account, trigger }) {
-      const apiUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000';
+      const apiUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http:localhost:8000' || 'http://backend:8000';
 
       // Session update triggered - refresh user data from backend
       if (trigger === 'update' && token.accessToken) {

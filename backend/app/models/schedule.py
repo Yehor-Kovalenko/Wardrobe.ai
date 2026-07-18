@@ -10,7 +10,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
-
+ # TODO remove whole class
 
 class Schedule(Base):
     __tablename__ = "schedules"
@@ -22,12 +22,8 @@ class Schedule(Base):
     day_of_week: Mapped[int] = mapped_column(
         Integer, nullable=False
     )  # 0=Monday (day to WEAR the outfit)
-    notification_time: Mapped[time] = mapped_column(Time, nullable=False)
     occasion: Mapped[str] = mapped_column(String(50), default="casual")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    notify_day_before: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # If True, notify evening before
 
     # Track last trigger to prevent duplicate notifications
     last_triggered_at: Mapped[datetime | None] = mapped_column(

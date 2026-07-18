@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -29,7 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { useCreateFamily, useJoinFamily } from '@/lib/hooks/use-family';
 import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -38,7 +36,6 @@ import { CLOTHING_COLORS, CLOTHING_TYPES, StyleProfile } from '@/lib/types';
 
 const STEPS = [
   { id: 'welcome', title: 'Welcome', icon: Shirt },
-  { id: 'family', title: 'Family', icon: Users },
   { id: 'location', title: 'Location', icon: MapPin },
   { id: 'preferences', title: 'Style', icon: Palette },
   { id: 'upload', title: 'First Item', icon: Camera },
@@ -92,7 +89,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
       </div>
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to Wardrowbe{user?.display_name ? `, ${user.display_name.split(' ')[0]}` : ''}!
+          Welcome to Wardrobe.ai{user?.display_name ? `, ${user.display_name.split(' ')[0]}` : ''}!
         </h1>
         <p className="text-muted-foreground mt-2 text-lg">
           Let&apos;s get your digital wardrobe set up in just a few steps.
@@ -121,146 +118,11 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
             </p>
           </div>
         </div>
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <p className="font-medium">Share with family</p>
-            <p className="text-sm text-muted-foreground">
-              Everyone can have their own personalized wardrobe
-            </p>
-          </div>
-        </div>
       </div>
       <Button size="lg" onClick={onNext}>
         Get Started
         <ArrowRight className="ml-2 w-5 h-5" />
       </Button>
-    </div>
-  );
-}
-
-function FamilyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
-  const [mode, setMode] = useState<'create' | 'join' | null>(null);
-  const [familyName, setFamilyName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
-
-  const createFamily = useCreateFamily();
-  const joinFamily = useJoinFamily();
-
-  const handleCreate = async () => {
-    if (!familyName.trim()) return;
-    try {
-      await createFamily.mutateAsync(familyName.trim());
-      toast.success('Family created!');
-      onNext();
-    } catch (error) {
-      toast.error('Failed to create family. Please try again.');
-    }
-  };
-
-  const handleJoin = async () => {
-    if (!inviteCode.trim()) return;
-    try {
-      await joinFamily.mutateAsync(inviteCode.trim().toUpperCase());
-      toast.success('Joined family!');
-      onNext();
-    } catch (error) {
-      toast.error('Invalid invite code. Please check and try again.');
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Family Setup</h2>
-        <p className="text-muted-foreground mt-1">
-          Create or join a family to share the wardrobe experience
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
-        <Card
-          className={`cursor-pointer transition-all ${
-            mode === 'create' ? 'ring-2 ring-primary' : 'hover:border-primary/50'
-          }`}
-          onClick={() => setMode('create')}
-        >
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Create Family</CardTitle>
-            <CardDescription>Start a new family</CardDescription>
-          </CardHeader>
-          {mode === 'create' && (
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="family-name">Family Name</Label>
-                  <Input
-                    id="family-name"
-                    placeholder="e.g., The Smith Family"
-                    value={familyName}
-                    onChange={(e) => setFamilyName(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={handleCreate}
-                  disabled={!familyName.trim() || createFamily.isPending}
-                >
-                  {createFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Family
-                </Button>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-
-        <Card
-          className={`cursor-pointer transition-all ${
-            mode === 'join' ? 'ring-2 ring-primary' : 'hover:border-primary/50'
-          }`}
-          onClick={() => setMode('join')}
-        >
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Join Family</CardTitle>
-            <CardDescription>Use an invite code</CardDescription>
-          </CardHeader>
-          {mode === 'join' && (
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="invite-code">Invite Code</Label>
-                  <Input
-                    id="invite-code"
-                    placeholder="e.g., ABC123XY"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    className="font-mono uppercase"
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={handleJoin}
-                  disabled={!inviteCode.trim() || joinFamily.isPending}
-                >
-                  {joinFamily.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Join Family
-                </Button>
-                {joinFamily.isError && (
-                  <p className="text-sm text-destructive">Invalid invite code</p>
-                )}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      </div>
-
-      <div className="text-center">
-        <Button variant="ghost" onClick={onSkip}>
-          Skip for now
-        </Button>
-      </div>
     </div>
   );
 }
@@ -814,15 +676,14 @@ export default function OnboardingPage() {
 
         <div className="py-8">
           {currentStep === 0 && <WelcomeStep onNext={nextStep} />}
-          {currentStep === 1 && <FamilyStep onNext={nextStep} onSkip={nextStep} />}
-          {currentStep === 2 && (
+          {currentStep === 1 && (
             <LocationStep
               onNext={nextStep}
               onSkip={nextStep}
             />
           )}
-          {currentStep === 3 && <PreferencesStep onNext={nextStep} onSkip={nextStep} />}
-          {currentStep === 4 && <UploadStep onNext={nextStep} onSkip={nextStep} />}
+          {currentStep === 2 && <PreferencesStep onNext={nextStep} onSkip={nextStep} />}
+          {currentStep === 3 && <UploadStep onNext={nextStep} onSkip={nextStep} />}
           {currentStep === STEPS.length && <CompleteStep onFinish={handleFinish} completing={completing} />}
         </div>
 

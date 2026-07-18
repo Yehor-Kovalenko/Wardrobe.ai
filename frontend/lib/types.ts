@@ -183,45 +183,6 @@ export const OCCASIONS = [
   { label: 'Outdoor', value: 'outdoor' },
 ] as const;
 
-// Family types
-export interface FamilyMember {
-  id: string;
-  display_name: string;
-  email: string;
-  avatar_url?: string;
-  role: 'admin' | 'member';
-  created_at: string;  // When user joined the family
-}
-
-export interface PendingInvite {
-  id: string;
-  email: string;
-  created_at: string;  // When invite was sent
-  expires_at: string;
-}
-
-export interface Family {
-  id: string;
-  name: string;
-  invite_code: string;
-  members: FamilyMember[];
-  pending_invites: PendingInvite[];
-  created_at: string;
-}
-
-export interface FamilyCreateResponse {
-  id: string;
-  name: string;
-  invite_code: string;
-  role: string;
-}
-
-export interface JoinFamilyResponse {
-  family_id: string;
-  family_name: string;
-  role: string;
-}
-
 // Multi-image types
 export interface ItemImage {
   id: string;
@@ -243,17 +204,6 @@ export interface WashHistoryEntry {
   washed_at: string;
   method?: string;
   notes?: string;
-  created_at: string;
-}
-
-// Family rating types
-export interface FamilyRating {
-  id: string;
-  user_id: string;
-  user_display_name: string;
-  user_avatar_url?: string;
-  rating: number;
-  comment?: string;
   created_at: string;
 }
 
@@ -301,9 +251,6 @@ export interface Outfit {
   weather?: WeatherData;
   items: OutfitItem[];
   feedback?: FeedbackSummary;
-  family_ratings?: FamilyRating[];
-  family_rating_average?: number;
-  family_rating_count?: number;
   created_at: string;
 }
 

@@ -14,7 +14,6 @@ from app.config import get_settings
 from app.database import get_db
 from app.models.item import ClothingItem
 from app.models.outfit import (
-    FamilyOutfitRating,
     Outfit,
     OutfitItem,
     OutfitStatus,
@@ -161,22 +160,6 @@ class FeedbackSummary(BaseModel):
     actually_worn: bool | None = None
     wore_instead_items: list[WoreInsteadItem] | None = None
 
-
-class FamilyRatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=5, description="Rating 1-5")
-    comment: str | None = Field(None, max_length=500)
-
-
-class FamilyRatingResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    user_display_name: str
-    user_avatar_url: str | None = None
-    rating: int
-    comment: str | None = None
-    created_at: datetime
-
-
 class OutfitResponse(BaseModel):
     id: UUID
     occasion: str
@@ -192,9 +175,6 @@ class OutfitResponse(BaseModel):
     weather: dict | None = None
     items: list[OutfitItemResponse]
     feedback: FeedbackSummary | None = None
-    family_ratings: list[FamilyRatingResponse] | None = None
-    family_rating_average: float | None = None
-    family_rating_count: int | None = None
     is_starter_suggestion: bool = False
     created_at: datetime
 
@@ -335,28 +315,6 @@ def outfit_to_response(
         if raw_highlights and isinstance(raw_highlights, list):
             highlights = raw_highlights
 
-    family_ratings_list = None
-    family_rating_average = None
-    family_rating_count = None
-    if hasattr(outfit, "family_ratings") and outfit.family_ratings:
-        family_ratings_list = [
-            FamilyRatingResponse(
-                id=r.id,
-                user_id=r.user_id,
-                user_display_name=(r.user.display_name or r.user.email) if r.user else "Unknown",
-                user_avatar_url=r.user.avatar_url if r.user else None,
-                rating=r.rating,
-                comment=r.comment,
-                created_at=r.created_at,
-            )
-            for r in outfit.family_ratings
-        ]
-        family_rating_count = len(outfit.family_ratings)
-        if family_rating_count > 0:
-            family_rating_average = (
-                sum(r.rating for r in outfit.family_ratings) / family_rating_count
-            )
-
     return OutfitResponse(
         id=outfit.id,
         occasion=outfit.occasion,
@@ -372,9 +330,6 @@ def outfit_to_response(
         weather=outfit.weather_data,
         items=items,
         feedback=feedback_summary,
-        family_ratings=family_ratings_list,
-        family_rating_average=family_rating_average,
-        family_rating_count=family_rating_count,
         is_starter_suggestion=is_starter_suggestion,
         created_at=outfit.created_at,
     )
@@ -462,7 +417,6 @@ async def list_outfits(
     occasion: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
-    family_member_id: UUID | None = Query(None, description="View a family member's outfits"),
     source: str | None = Query(None, description="Comma-separated source enum filter"),
     is_lookbook: bool | None = Query(None, description="true for templates only"),
     is_replacement: bool | None = Query(None),
@@ -479,8 +433,6 @@ async def list_outfits(
     service = OutfitService(db)
 
     target_user_id = current_user.id
-    if family_member_id:
-        target_user_id = await service.verify_family_access(current_user, family_member_id)
 
     filters = OutfitListFilters(
         user_id=target_user_id,
@@ -493,15 +445,12 @@ async def list_outfits(
         is_replacement=is_replacement,
         has_source_item=has_source_item,
         item_type=item_type or source_type,
-        family_member_view=family_member_id is not None,
         search=search,
         cloned_from_outfit_id=cloned_from_outfit_id,
     )
 
     outfits, total = await service.list_with_filters(filters, page, page_size)
-
     wore_instead_map = await fetch_wore_instead_items_map(db, outfits, user_id=current_user.id)
-
     outfit_responses = [outfit_to_response(o, wore_instead_map) for o in outfits]
 
     return OutfitListResponse(
@@ -525,7 +474,6 @@ async def get_outfit(
         .options(
             selectinload(Outfit.items).selectinload(OutfitItem.item),
             selectinload(Outfit.feedback),
-            selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
         )
     )
 
@@ -555,7 +503,6 @@ async def accept_outfit(
         .options(
             selectinload(Outfit.items).selectinload(OutfitItem.item),
             selectinload(Outfit.feedback),
-            selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
         )
     )
 
@@ -590,7 +537,6 @@ async def reject_outfit(
         .options(
             selectinload(Outfit.items).selectinload(OutfitItem.item),
             selectinload(Outfit.feedback),
-            selectinload(Outfit.family_ratings).selectinload(FamilyOutfitRating.user),
         )
     )
 
@@ -812,137 +758,6 @@ async def get_feedback(
         wore_instead_items=[UUID(item_id) for item_id in (feedback.wore_instead_items or [])],
         created_at=feedback.created_at,
     )
-
-
-@router.post("/{outfit_id}/family-rating", response_model=FamilyRatingResponse)
-async def submit_family_rating(
-    outfit_id: UUID,
-    request: FamilyRatingRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-) -> FamilyRatingResponse:
-    result = await db.execute(select(Outfit).where(Outfit.id == outfit_id))
-    outfit = result.scalar_one_or_none()
-
-    if not outfit:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Outfit not found")
-
-    if outfit.scheduled_for is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error_code": "OUTFIT_IS_TEMPLATE",
-                "message": "Cannot rate a lookbook template",
-            },
-        )
-
-    if outfit.user_id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot rate your own outfit",
-        )
-
-    if not current_user.family_id or not outfit.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "message": "You must be in the same family to rate outfits",
-                "error_code": "NOT_IN_FAMILY",
-            },
-        )
-
-    owner_result = await db.execute(
-        select(User).where(User.id == outfit.user_id, User.is_active == True)  # noqa: E712
-    )
-    owner = owner_result.scalar_one_or_none()
-    if not owner or owner.family_id != current_user.family_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "message": "You must be in the same family to rate outfits",
-                "error_code": "NOT_IN_FAMILY",
-            },
-        )
-
-    existing = await db.execute(
-        select(FamilyOutfitRating).where(
-            and_(
-                FamilyOutfitRating.outfit_id == outfit_id,
-                FamilyOutfitRating.user_id == current_user.id,
-            )
-        )
-    )
-    rating = existing.scalar_one_or_none()
-
-    if rating:
-        rating.rating = request.rating
-        rating.comment = request.comment
-    else:
-        rating = FamilyOutfitRating(
-            outfit_id=outfit_id,
-            user_id=current_user.id,
-            rating=request.rating,
-            comment=request.comment,
-        )
-        db.add(rating)
-
-    await db.flush()
-    await db.refresh(rating)
-
-    return FamilyRatingResponse(
-        id=rating.id,
-        user_id=rating.user_id,
-        user_display_name=current_user.display_name or current_user.email,
-        user_avatar_url=current_user.avatar_url,
-        rating=rating.rating,
-        comment=rating.comment,
-        created_at=rating.created_at,
-    )
-
-
-@router.get("/{outfit_id}/family-ratings", response_model=list[FamilyRatingResponse])
-async def get_family_ratings(
-    outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-) -> list[FamilyRatingResponse]:
-    result = await db.execute(select(Outfit).where(Outfit.id == outfit_id))
-    outfit = result.scalar_one_or_none()
-
-    if not outfit:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Outfit not found")
-
-    if outfit.user_id != current_user.id:
-        if not current_user.family_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-        owner_result = await db.execute(
-            select(User).where(User.id == outfit.user_id, User.is_active == True)  # noqa: E712
-        )
-        owner = owner_result.scalar_one_or_none()
-        if not owner or owner.family_id != current_user.family_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    ratings_result = await db.execute(
-        select(FamilyOutfitRating)
-        .where(FamilyOutfitRating.outfit_id == outfit_id)
-        .options(selectinload(FamilyOutfitRating.user))
-        .order_by(FamilyOutfitRating.created_at.desc())
-    )
-    ratings = list(ratings_result.scalars().all())
-
-    return [
-        FamilyRatingResponse(
-            id=r.id,
-            user_id=r.user_id,
-            user_display_name=r.user.display_name or r.user.email,
-            user_avatar_url=r.user.avatar_url,
-            rating=r.rating,
-            comment=r.comment,
-            created_at=r.created_at,
-        )
-        for r in ratings
-    ]
-
 
 def _check_studio_kill_switch() -> None:
     if get_settings().studio_disabled:
@@ -1217,29 +1032,3 @@ async def patch_outfit_endpoint(
 
     full = await service.get_full_outfit(updated.id)
     return outfit_to_response(full)
-
-
-@router.delete("/{outfit_id}/family-rating", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_family_rating(
-    outfit_id: UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_user)],
-) -> None:
-    result = await db.execute(
-        select(FamilyOutfitRating).where(
-            and_(
-                FamilyOutfitRating.outfit_id == outfit_id,
-                FamilyOutfitRating.user_id == current_user.id,
-            )
-        )
-    )
-    rating = result.scalar_one_or_none()
-
-    if not rating:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Rating not found",
-        )
-
-    await db.delete(rating)
-    await db.flush()

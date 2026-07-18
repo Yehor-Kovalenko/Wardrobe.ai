@@ -82,17 +82,6 @@ class FeedbackSummary(BaseModel):
     comment: str | None = None
     worn_at: date | None = None
 
-
-class FamilyRatingResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    user_display_name: str
-    user_avatar_url: str | None = None
-    rating: int
-    comment: str | None = None
-    created_at: datetime
-
-
 class PairingResponse(BaseModel):
     id: UUID
     occasion: str
@@ -105,9 +94,6 @@ class PairingResponse(BaseModel):
     source_item: SourceItemResponse | None = None
     items: list[PairingItemResponse]
     feedback: FeedbackSummary | None = None
-    family_ratings: list[FamilyRatingResponse] | None = None
-    family_rating_average: float | None = None
-    family_rating_count: int | None = None
     created_at: datetime
 
 
@@ -172,28 +158,6 @@ def pairing_to_response(outfit: Outfit) -> PairingResponse:
         if raw_highlights and isinstance(raw_highlights, list):
             highlights = raw_highlights
 
-    family_ratings_list = None
-    family_rating_average = None
-    family_rating_count = None
-    if hasattr(outfit, "family_ratings") and outfit.family_ratings:
-        family_ratings_list = [
-            FamilyRatingResponse(
-                id=r.id,
-                user_id=r.user_id,
-                user_display_name=r.user.display_name or r.user.email if r.user else "Unknown",
-                user_avatar_url=r.user.avatar_url if r.user else None,
-                rating=r.rating,
-                comment=r.comment,
-                created_at=r.created_at,
-            )
-            for r in outfit.family_ratings
-        ]
-        family_rating_count = len(outfit.family_ratings)
-        if family_rating_count > 0:
-            family_rating_average = (
-                sum(r.rating for r in outfit.family_ratings) / family_rating_count
-            )
-
     return PairingResponse(
         id=outfit.id,
         occasion=outfit.occasion,
@@ -206,9 +170,6 @@ def pairing_to_response(outfit: Outfit) -> PairingResponse:
         source_item=source_item_response,
         items=items,
         feedback=feedback_summary,
-        family_ratings=family_ratings_list,
-        family_rating_average=family_rating_average,
-        family_rating_count=family_rating_count,
         created_at=outfit.created_at,
     )
 
