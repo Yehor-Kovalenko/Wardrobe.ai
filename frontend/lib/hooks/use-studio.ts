@@ -18,7 +18,7 @@ export interface StudioCreatePayload {
 export function useCreateStudioOutfit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: StudioCreatePayload) => {
+    mutationFn: async (payload: StudioCreatePayload) => {
       let newOutfit = studioService.createOutfitFromScratch(payload);
       if (!newOutfit) {
         console.error("Failed to create a new outfit");
@@ -27,6 +27,8 @@ export function useCreateStudioOutfit() {
 
       // @ts-ignore
       await learningService.processFeedback(newOutfit?.id);
+      // @ts-ignore
+      return studioService.getFullOutfit(newOutfit?.id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['outfits'] });
@@ -46,8 +48,12 @@ export interface WoreInsteadPayload {
 export function useCreateWoreInstead(originalOutfitId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: WoreInsteadPayload) =>
-      api.post<Outfit>(`/outfits/${originalOutfitId}/wore-instead`, payload),
+    mutationFn: async (payload: WoreInsteadPayload) => {
+      let replacement = await studioService.createWoreInstead(originalOutfitId, payload);
+      await learningService.processFeedback(replacement!.id);
+      // @ts-ignore
+      return studioService.getFullOutfit(newOutfit?.id);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['outfits'] });
       qc.invalidateQueries({ queryKey: ['outfit', originalOutfitId] });
@@ -59,11 +65,17 @@ export function useCreateWoreInstead(originalOutfitId: string) {
   });
 }
 
-export function useCloneToLookbook(sourceOutfitId: string) {
+/**
+ * @deprecated
+ * @param sourceOutfitId
+ */
+export function useCloneToLookbook(sourceOutfitId: string) { //TODO remove, this does not work
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string }) =>
-      api.post<Outfit>(`/outfits/${sourceOutfitId}/clone-to-lookbook`, payload),
+    // @ts-ignore
+    mutationFn: (payload: { name: string }) => {
+      return {};
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['outfits'] });
     },

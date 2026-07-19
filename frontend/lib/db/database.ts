@@ -28,7 +28,7 @@ class AppDatabase extends Dexie {
         this.version(1).stores({
             users: "id",//singleton
             userPreferences: "id", //singleton
-            outfits: "id",
+            outfits: "id, replaces_outfit_id",
             userOutfitFeedbacks: "++id, outfitId",
             // userLearningProfiles: "id", //singleton //Reconsider
             learningInsightsData: "id", //singleton //combines userlearningprofile + styleinsights

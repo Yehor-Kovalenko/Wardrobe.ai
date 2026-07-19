@@ -390,7 +390,6 @@ export interface OutfitPerformance {
   color_composition?: any; //Format: {"primary_colors": ["blue", "gray"], "color_harmony": "complementary"}
   was_modified?: boolean;
   modification_notes?: string;
-
 }
 
 export interface StyleInsight {

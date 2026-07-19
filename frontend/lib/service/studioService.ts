@@ -1,4 +1,4 @@
-import {StudioCreatePayload} from "@/lib/hooks/use-studio";
+import {StudioCreatePayload, WoreInsteadPayload} from "@/lib/hooks/use-studio";
 import {Item, Outfit, OutfitItem} from "@/lib/types";
 import {clothingItemRepository} from "@/lib/db/repositories/clothingItemRepository";
 import {canonicalItemOrder} from "@/lib/studio/canonical-order";
@@ -73,6 +73,70 @@ export const studioService = {
         }
 
         return outfitRepository.getById(newOutfit!.id)
-    }
+    },
+
+    async getFullOutfit(outfitId: any) {
+        return outfitRepository.getById(outfitId);
+    },
+
+    async createWoreInstead(outfitId: any, payload: WoreInsteadPayload) {
+        let outfit = await outfitRepository.getById(outfitId);
+        let existingResult = await outfitRepository.getByReplacementId(outfitId)
+        if (existingResult.length != 0) {
+            return existingResult[0];
+        }
+
+        let items = await clothingItemRepository.getByIds(payload.items);
+        items = items.filter(item => item.status === "ready");
+        // order items cannonicaly
+        let ordered = canonicalItemOrder(items);
+
+        let effective_date = payload.scheduled_for ?? outfit?.scheduled_for;
+        const occasion_label = (outfit?.occasion ?? "Outfit").toUpperCase();
+        let replacement: Outfit = {
+            id: crypto.randomUUID(),
+            items: [],
+            occasion: outfit!.occasion,
+            scheduled_for: effective_date,
+            source: "manual",
+            status: "pending",
+            replaces_outfit_id: outfit?.id,
+            name: `${occasion_label} (wore instead)`
+        }
+        await outfitRepository.create(replacement);
+
+         let outfitItems = ordered.map((item, idx) => {
+            let oi: OutfitItem = {
+                type: item?.type,
+                id: item?.id,
+                position: idx
+            }
+            return oi;
+        })
+
+        let feedback = learningService.createSyntheticFeedback(replacement?.id, true, effective_date, payload.rating, payload.comment);
+        await userOutfitFeedbackRepository.create(feedback);
+        await outfitRepository.update(replacement!.id, {
+            items: outfitItems,
+            feedback: feedback
+        })
+        //
+        outfit!.status = "rejected";
+        await outfitRepository.update(outfit!.id, {status: "rejected"})
+
+        if (effective_date) {
+            let orderedIds = ordered.map(item => item?.id);
+            await this._apply_wear_tracking(orderedIds, effective_date);
+            // update wearhistory repo
+            await wearHistoryRepository.add(replacement!.id, {
+                occasion: replacement.occasion,
+                outfit_id: replacement?.id
+            })
+        }
+
+        return outfitRepository.getById(replacement!.id)
+    },
+
+
 
 }

@@ -18,6 +18,9 @@ export const outfitRepository = {
         return db.outfits.get(id);
     },
 
+    async getByReplacementId(id: string) {
+        return db.outfits.where("replaces_outfit_id").equals(id).toArray();
+    },
 
     async update(
         id: string,
