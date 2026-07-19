@@ -137,6 +137,105 @@ export const studioService = {
         return outfitRepository.getById(replacement!.id)
     },
 
+    async wearToday(templateId: any, scheduled_for: any) {
+        let outfit = await outfitRepository.getById(templateId);
+        if (!outfit) {
+            return null;
+        }
+        if (outfit.scheduled_for) {
+            console.error("wear today requires a lookbook template");
+            return null;
+        }
 
+        const target_date = scheduled_for ?? Date.now();
+        let wear: Outfit = {
+            id: crypto.randomUUID(),
+            occasion: outfit.occasion,
+            scheduled_for: target_date,
+            source: "manual",
+            status: "pending",
+            name: outfit.name,
+            cloned_from_outfit_id: outfit.id,
+            items: []
+        }
+        await outfitRepository.create(wear);
+        let newOutfit = await outfitRepository.getById(wear.id);
 
+        let outfitItems: OutfitItem[] = [];
+        for (const oi of outfit.items.sort((a, b) => a.position - b.position)) {
+            outfitItems.push({
+                id: oi.id,
+                type: oi.type,
+                position: oi.position,
+                layer_type: oi.layer_type,
+            });
+        }
+
+        let feedback = learningService.createSyntheticFeedback(newOutfit?.id, true, target_date, undefined, undefined);
+        await userOutfitFeedbackRepository.create(feedback);
+        await outfitRepository.update(newOutfit!.id, {
+            items: outfitItems,
+            feedback: feedback
+        })
+
+        let orderedIds = outfit.items.map(item => item?.id);
+        await this._apply_wear_tracking(orderedIds, target_date);
+        // update wearhistory repo
+        await wearHistoryRepository.add(newOutfit!.id, {
+            occasion: outfit.occasion,
+            outfit_id: newOutfit?.id
+        })
+
+        return outfitRepository.getById(newOutfit!.id)
+    },
+
+    async patchOutfit(outfitId: string, name: string | undefined, items: any[] | undefined) {
+        let outfit = await outfitRepository.getById(outfitId);
+        if (!outfit) {
+            return null;
+        }
+        if (name) {
+            outfit.name = name;
+        }
+        if (items) {
+            if (outfit.feedback?.worn_at) {
+                console.error("Cannot modify items on a worn outfit");
+                return null;
+            }
+            let newItems = items.filter(item => item.status === "ready");
+            // order items cannonicaly
+            let ordered = canonicalItemOrder(newItems);
+
+            // let newIds = ordered.map(i => i.id)
+            // let oldIds = outfit.items.map(i => i.id);
+            // //TODO reconsider? should be removed or not?
+            // const oldPairs = generatePairs(oldIds);
+            // const newPairs = generatePairs(newIds);
+            // // @ts-ignore
+            // const added = [...newPairs].filter(pair => !oldPairs.has(pair));
+            // // @ts-ignore
+            // const removed = [...oldPairs].filter(pair => !newPairs.has(pair))
+            await outfitRepository.update(outfit.id, {
+                items: ordered
+            })
+            return outfitRepository.getById(outfit.id);
+        }
+    }
+
+}
+
+function generatePairs(ids: string[]): Set<string> {
+    const pairs = new Set<string>();
+
+    for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+            const pair = [ids[i], ids[j]]
+                .sort()
+                .join("|");
+
+            pairs.add(pair);
+        }
+    }
+
+    return pairs;
 }

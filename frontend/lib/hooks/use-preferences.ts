@@ -4,11 +4,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import {AITestResult, Preferences} from '@/lib/types';
 import {userPreferencesRepository} from "@/lib/db/repositories/userPreferencesRepository";
+import {userPreferencesService} from "@/lib/service/userPreferencesService";
 
 export function usePreferences() {
   return useQuery({
     queryKey: ['preferences'],
-    queryFn: () => userPreferencesRepository.getCurrent(),
+    queryFn: async () => {
+      let p = await userPreferencesRepository.getCurrent();
+      if (!p) {
+        return await userPreferencesService.resetToDefault();
+      }
+      return p;
+    },
   });
 }
 
@@ -29,8 +36,8 @@ export function useResetPreferences() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => {
-      return api.post<Preferences>('/users/me/preferences/reset');
+    mutationFn: async () => {
+      return await userPreferencesService.resetToDefault();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['preferences'] });
@@ -40,8 +47,10 @@ export function useResetPreferences() {
 
 export function useTestAIEndpoint() {
   return useMutation({
+    // @ts-ignore
     mutationFn: (url: string) => {
-      return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', { url });
+      return undefined;
+      // return api.post<AITestResult>('/users/me/preferences/test-ai-endpoint', { url }); //TODO in th efuture
     },
   });
 } //TODO in the future

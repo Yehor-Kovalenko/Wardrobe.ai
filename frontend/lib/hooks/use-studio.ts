@@ -1,10 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { api } from '@/lib/api';
-import type { Outfit } from '@/lib/types';
 import {studioService} from "@/lib/service/studioService";
 import {learningService} from "@/lib/service/learningService";
-import {userRepository} from "@/lib/db/repositories/userRepository";
 
 export interface StudioCreatePayload {
   items: string[];
@@ -19,7 +16,7 @@ export function useCreateStudioOutfit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: StudioCreatePayload) => {
-      let newOutfit = studioService.createOutfitFromScratch(payload);
+      let newOutfit = await studioService.createOutfitFromScratch(payload);
       if (!newOutfit) {
         console.error("Failed to create a new outfit");
         return null;
@@ -85,8 +82,13 @@ export function useCloneToLookbook(sourceOutfitId: string) { //TODO remove, this
 export function useWearToday(templateId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { scheduled_for?: string | null }) =>
-      api.post<Outfit>(`/outfits/${templateId}/wear-today`, payload),
+    mutationFn: async (payload: { scheduled_for?: string | null }) => {
+      let wear = await studioService.wearToday(templateId, payload.scheduled_for);
+      // @ts-ignore
+      await learningService.processFeedback(wear!.id);
+      // @ts-ignore
+      return studioService.getFullOutfit(newOutfit?.id);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['outfits'] });
       qc.invalidateQueries({ queryKey: ['calendarOutfits'] });
@@ -103,8 +105,10 @@ export interface PatchOutfitPayload {
 export function usePatchOutfit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: PatchOutfitPayload }) =>
-      api.patch<Outfit>(`/outfits/${id}`, payload),
+    mutationFn: async ({ id, payload }: { id: string; payload: PatchOutfitPayload }) => {
+      let updated = await studioService.patchOutfit(id, payload.name, payload.items);
+      return studioService.getFullOutfit(updated?.id);
+    },
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: ['outfit', id] });
       qc.invalidateQueries({ queryKey: ['outfits'] });
