@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { CalendarDays, ChevronLeft, ChevronRight, X, RotateCcw, RotateCw, Loader2, Users, Star, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +13,7 @@ import { type Outfit } from '@/lib/hooks/use-outfits';
 import { useRotateImage } from '@/lib/hooks/use-items';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import {useUserProfile} from "@/lib/hooks/use-user";
 
 interface OutfitPreviewDialogProps {
   outfit: Outfit;
@@ -28,9 +28,9 @@ export function OutfitPreviewDialog({ outfit, open, onClose, isOwner = true }: O
   const [showRatingForm, setShowRatingForm] = useState(false);
   const items = outfit.items;
   const rotateImage = useRotateImage();
-  const { data: session } = useSession();
+  const { data: user, isLoading: isLoadingProfile } = useUserProfile();
 
-  const currentEmail = session?.user?.email;
+  const currentEmail = user?.email;
 
   const currentItem = items[currentIndex];
 

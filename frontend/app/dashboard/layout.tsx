@@ -10,7 +10,7 @@ import { Header } from '@/components/header';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { ImageLightbox } from '@/components/image-lightbox';
 import { LightboxProvider } from '@/lib/lightbox-context';
-import { useAuth } from '@/lib/hooks/use-auth';
+import {useUserProfile} from "@/lib/hooks/use-user";
 
 export default function DashboardLayout({
   children,
@@ -19,15 +19,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const { user, isAuthenticated, isLoading, error } = useAuth();
-
-  useEffect(() => {
-    // If auth check completed and user is not authenticated, redirect to login
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  const { data: user, isLoading: isLoading } = useUserProfile();
 
   // Check onboarding status from API user
   useEffect(() => {
@@ -45,10 +37,6 @@ export default function DashboardLayout({
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (

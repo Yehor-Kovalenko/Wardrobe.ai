@@ -30,9 +30,9 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { useUpdatePreferences } from '@/lib/hooks/use-preferences';
 import { useCreateItem } from '@/lib/hooks/use-items';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
 import { CLOTHING_COLORS, CLOTHING_TYPES, StyleProfile } from '@/lib/types';
+import {useUserProfile} from "@/lib/hooks/use-user";
 
 const STEPS = [
   { id: 'welcome', title: 'Welcome', icon: Shirt },
@@ -77,8 +77,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 function WelcomeStep({ onNext }: { onNext: () => void }) {
-  // Use unified auth hook to get user name (works in both auth modes)
-  const { user } = useAuth();
+  const { data: user} = useUserProfile();
 
   return (
     <div className="text-center space-y-6">
@@ -134,8 +133,6 @@ function LocationStep({
   onNext: () => void;
   onSkip: () => void;
 }) {
-  // Use unified auth hook (token is already set by useAuth)
-  const { session } = useAuth();
   const [locationName, setLocationName] = useState('');
   const [detecting, setDetecting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -187,10 +184,6 @@ function LocationStep({
 
     setSaving(true);
     try {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
-
       // Save location to user profile
       const updateData: Record<string, unknown> = {
         location_name: locationName.trim(),
@@ -620,7 +613,7 @@ function CompleteStep({ onFinish, completing }: { onFinish: () => void; completi
 export default function OnboardingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading, session } = useAuth();
+  const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const [currentStep, setCurrentStep] = useState(0);
   const [completing, setCompleting] = useState(false);
 
@@ -630,9 +623,6 @@ export default function OnboardingPage() {
   const completeOnboarding = async () => {
     setCompleting(true);
     try {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       await api.post('/users/me/onboarding/complete');
       // Invalidate cached user data so dashboard sees onboarding_completed: true
       await queryClient.invalidateQueries({ queryKey: ['auth-user'] });
@@ -648,8 +638,7 @@ export default function OnboardingPage() {
     completeOnboarding();
   };
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  if (isLoadingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -657,14 +646,8 @@ export default function OnboardingPage() {
     );
   }
 
-  // Redirect to login if not authenticated (API call failed)
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
-  }
-
   // If user already completed onboarding, redirect to dashboard
-  if (user?.onboarding_completed) {
+  if (userProfile?.onboarding_completed) {
     router.push('/dashboard');
     return null;
   }

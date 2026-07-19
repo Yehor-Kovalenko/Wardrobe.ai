@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
 import { Loader2, Save, RotateCcw, Check, Plus, Trash2, ChevronUp, ChevronDown, Server, MapPin, Navigation, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -169,7 +168,6 @@ function StyleSlider({
 }
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
   const { data: preferences, isLoading } = usePreferences();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const updatePreferences = useUpdatePreferences();
@@ -564,10 +562,6 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input value={userProfile?.display_name || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={userProfile?.email || ''} disabled />
               </div>
             </div>
           </CardContent>

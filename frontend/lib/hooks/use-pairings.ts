@@ -1,8 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { api, setAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
 import {
   Pairing,
   PairingListResponse,
@@ -10,17 +9,7 @@ import {
   GeneratePairingsResponse,
 } from '@/lib/types';
 
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
 export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
-
   return useQuery({
     queryKey: ['pairings', page, pageSize, sourceType],
     queryFn: async () => {
@@ -33,14 +22,10 @@ export function usePairings(page = 1, pageSize = 20, sourceType?: string) {
       }
       return api.get<PairingListResponse>('/pairings', { params });
     },
-    enabled: status !== 'loading',
   });
 }
 
 export function useItemPairings(itemId: string, page = 1, pageSize = 20) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
-
   return useQuery({
     queryKey: ['pairings', 'item', itemId, page, pageSize],
     queryFn: async () => {
@@ -50,13 +35,12 @@ export function useItemPairings(itemId: string, page = 1, pageSize = 20) {
       };
       return api.get<PairingListResponse>(`/pairings/item/${itemId}`, { params });
     },
-    enabled: !!itemId && status !== 'loading',
+    enabled: !!itemId,
   });
 }
 
 export function useGeneratePairings() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -66,9 +50,6 @@ export function useGeneratePairings() {
       itemId: string;
       numPairings?: number;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.post<GeneratePairingsResponse>(`/pairings/generate/${itemId}`, {
         num_pairings: numPairings,
       });
@@ -82,13 +63,9 @@ export function useGeneratePairings() {
 
 export function useDeletePairing() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (pairingId: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.delete(`/pairings/${pairingId}`);
     },
     onSuccess: () => {

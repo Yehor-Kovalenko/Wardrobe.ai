@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import {
   Briefcase,
   Shirt,
@@ -41,7 +40,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { api, ApiError, setAccessToken } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { OCCASIONS, Outfit, SuggestRequest } from '@/lib/types';
 import { useWeather, Weather } from '@/lib/hooks/use-weather';
 import { usePreferences } from '@/lib/hooks/use-preferences';
@@ -431,7 +430,6 @@ function OutfitResult({
 }
 
 export default function SuggestPage() {
-  const { data: session } = useSession();
   const { data: weather, isLoading: weatherLoading } = useWeather();
   const { data: prefs } = usePreferences();
   const temperatureUnit: TempUnit = prefs?.temperature_unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
@@ -451,10 +449,6 @@ export default function SuggestPage() {
 
   const handleGenerate = async () => {
     if (!selectedOccasion) return;
-
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
 
     setIsGenerating(true);
     setError(null);
@@ -491,10 +485,6 @@ export default function SuggestPage() {
   const handleAccept = async () => {
     if (!outfit) return;
 
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
-
     try {
       await api.post(`/outfits/${outfit.id}/accept`);
       setOutfit(null);
@@ -511,10 +501,6 @@ export default function SuggestPage() {
 
   const handleReject = async () => {
     if (!outfit) return;
-
-    if (session?.accessToken) {
-      setAccessToken(session.accessToken as string);
-    }
 
     try {
       await api.post(`/outfits/${outfit.id}/reject`);

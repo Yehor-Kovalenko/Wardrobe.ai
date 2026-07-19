@@ -2,25 +2,20 @@
 
 import { Menu, Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { signOut } from 'next-auth/react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/hooks/use-auth';
+import {useUserProfile} from "@/lib/hooks/use-user";
 
 interface HeaderProps {
   onMenuClick?: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { user } = useAuth();
+  const { data: user, isLoading: isLoadingProfile } = useUserProfile();
   const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/login' });
   };
 
   const getInitials = (name?: string | null) => {
@@ -69,14 +64,6 @@ export function Header({ onMenuClick }: HeaderProps) {
             <span className="hidden text-sm font-semibold lg:block">
               {user?.display_name || 'User'}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              aria-label="Sign out"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </div>

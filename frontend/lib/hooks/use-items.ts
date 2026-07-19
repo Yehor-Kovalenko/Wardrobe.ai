@@ -2,26 +2,16 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-import { api, getAccessToken, setAccessToken, ApiError, NetworkError } from '@/lib/api';
-import { Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage } from '@/lib/types';
+import { api, ApiError, NetworkError } from '@/lib/api';
+import {Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, WearHistoryEntry} from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
 const BULK_UPLOAD_CHUNK_SIZE = 20;
 
-// Helper to set token if available (for NextAuth mode)
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
-
 export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
-  const { data: session, status } = useSession();
-  useSetTokenIfAvailable();
+  
 
   return useQuery({
     queryKey: ['items', filters, page, pageSize],
@@ -53,9 +43,6 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
 }
 
 export function useItem(itemId: string) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
-
   return useQuery({
     queryKey: ['item', itemId],
     queryFn: () => api.get<Item>(`/items/${itemId}`),
@@ -65,24 +52,15 @@ export function useItem(itemId: string) {
 
 export function useCreateItem() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const token = session?.accessToken || getAccessToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       let response: Response;
       try {
         // Use the Next.js proxy path for client-side requests
         response = await fetch('/api/v1/items', {
           method: 'POST',
           body: formData,
-          credentials: 'include',
-          headers,
         });
       } catch {
         if (!navigator.onLine) {
@@ -110,13 +88,9 @@ export function useCreateItem() {
 
 export function useUpdateItem() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Item> }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.patch<Item>(`/items/${id}`, data);
     },
     onSuccess: (_, variables) => {
@@ -128,13 +102,9 @@ export function useUpdateItem() {
 
 export function useRemoveBackground() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ id, bg_color }: { id: string; bg_color?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.post<Item>(`/items/${id}/remove-background`, { bg_color: bg_color ?? '#FFFFFF' });
     },
     onSuccess: (_, variables) => {
@@ -148,13 +118,9 @@ export function useRemoveBackground() {
 
 export function useDeleteItem() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.delete(`/items/${id}`);
     },
     onMutate: async (deletedId) => {
@@ -194,13 +160,10 @@ export function useDeleteItem() {
 
 export function useArchiveItem() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<Item>(`/items/${id}/archive`, { reason });
     },
     onSuccess: () => {
@@ -211,7 +174,6 @@ export function useArchiveItem() {
 
 export function useLogWear() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -223,9 +185,7 @@ export function useLogWear() {
       worn_at?: string;
       occasion?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<Item>(`/items/${id}/wear`, { worn_at, occasion });
     },
     onSuccess: (_, variables) => {
@@ -237,7 +197,6 @@ export function useLogWear() {
 
 export function useLogWash() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -251,9 +210,7 @@ export function useLogWash() {
       method?: string;
       notes?: string;
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<Item>(`/items/${id}/wash`, { washed_at, method, notes });
     },
     onSuccess: (_, variables) => {
@@ -265,8 +222,8 @@ export function useLogWash() {
 }
 
 export function useWashHistory(itemId: string) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
+  
+  
 
   return useQuery({
     queryKey: ['wash-history', itemId],
@@ -285,8 +242,8 @@ export interface WearStats {
 }
 
 export function useItemWearStats(itemId: string) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
+  
+  
 
   return useQuery({
     queryKey: ['wear-stats', itemId],
@@ -295,26 +252,26 @@ export function useItemWearStats(itemId: string) {
   });
 }
 
-export interface WearHistoryEntry {
-  id: string;
-  worn_at: string;
-  occasion?: string;
-  notes?: string;
-  outfit?: {
-    id: string;
-    occasion: string;
-    items: Array<{
-      id: string;
-      type: string;
-      name?: string;
-      thumbnail_url?: string;
-    }>;
-  };
-}
+// export interface WearHistoryEntry {
+//   id: string;
+//   worn_at: string;
+//   occasion?: string;
+//   notes?: string;
+//   outfit?: {
+//     id: string;
+//     occasion: string;
+//     items: Array<{
+//       id: string;
+//       type: string;
+//       name?: string;
+//       thumbnail_url?: string;
+//     }>;
+//   };
+// }
 
 export function useItemWearHistory(itemId: string, limit = 10) {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
+  
+  
 
   return useQuery({
     queryKey: ['wear-history', itemId],
@@ -325,24 +282,15 @@ export function useItemWearHistory(itemId: string, limit = 10) {
 
 export function useAddItemImage() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ itemId, file }: { itemId: string; file: File }) => {
-      const token = session?.accessToken || getAccessToken();
       const formData = new FormData();
       formData.append('image', file);
-
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
 
       const response = await fetch(`/api/v1/items/${itemId}/images`, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
-        headers,
       });
 
       if (!response.ok) {
@@ -361,13 +309,10 @@ export function useAddItemImage() {
 
 export function useDeleteItemImage() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.delete(`/items/${itemId}/images/${imageId}`);
     },
     onSuccess: (_, variables) => {
@@ -379,13 +324,10 @@ export function useDeleteItemImage() {
 
 export function useSetPrimaryImage() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({ itemId, imageId }: { itemId: string; imageId: string }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<Item>(`/items/${itemId}/images/${imageId}/set-primary`);
     },
     onSuccess: (_, variables) => {
@@ -397,7 +339,6 @@ export function useSetPrimaryImage() {
 
 export function useRotateImage() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async ({
@@ -407,9 +348,7 @@ export function useRotateImage() {
       id: string;
       direction: 'cw' | 'ccw';
     }) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<Item>(`/items/${id}/rotate?direction=${direction}`);
     },
     onSuccess: (_, variables) => {
@@ -422,8 +361,7 @@ export function useRotateImage() {
 }
 
 export function useItemTypes() {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
+  
 
   return useQuery({
     queryKey: ['item-types'],
@@ -433,8 +371,7 @@ export function useItemTypes() {
 }
 
 export function useColorDistribution() {
-  const { status } = useSession();
-  useSetTokenIfAvailable();
+  
 
   return useQuery({
     queryKey: ['color-distribution'],
@@ -445,13 +382,9 @@ export function useColorDistribution() {
 
 export function useReanalyzeItem() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
       return api.post<{ job_id: string; status: string }>(`/items/${id}/analyze`);
     },
     onSuccess: () => {
@@ -497,13 +430,10 @@ export interface BulkOperationParams {
 
 export function useBulkDeleteItems() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<BulkDeleteResponse>('/items/bulk/delete', params);
     },
     onMutate: async (params) => {
@@ -564,13 +494,10 @@ export interface BulkAnalyzeResponse {
 
 export function useBulkReanalyzeItems() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (params: BulkOperationParams) => {
-      if (session?.accessToken) {
-        setAccessToken(session.accessToken as string);
-      }
+      
       return api.post<BulkAnalyzeResponse>('/items/bulk/analyze', params);
     },
     onMutate: async (params) => {
@@ -625,7 +552,6 @@ export function useBulkReanalyzeItems() {
 function uploadBulkItemsChunk(
   files: File[],
   skipAi: boolean,
-  token: string | null | undefined,
   onProgress: (percent: number) => void
 ): Promise<BulkUploadResponse> {
   const formData = new FormData();
@@ -676,10 +602,6 @@ function uploadBulkItemsChunk(
     });
 
     xhr.open('POST', '/api/v1/items/bulk');
-    xhr.withCredentials = true;
-    if (token) {
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    }
     xhr.send(formData);
   });
 }
@@ -715,19 +637,17 @@ function failedChunkResponse(files: File[], error: unknown): BulkUploadResponse 
 
 export function useBulkCreateItems() {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const mutation = useMutation({
     mutationFn: async ({ files, skipAi = false }: { files: File[]; skipAi?: boolean }) => {
-      const token = session?.accessToken || getAccessToken();
       const chunks = chunkArray(files, BULK_UPLOAD_CHUNK_SIZE);
       const responses: BulkUploadResponse[] = [];
 
       for (let i = 0; i < chunks.length; i++) {
         const chunkFiles = chunks[i];
         try {
-          const response = await uploadBulkItemsChunk(chunkFiles, skipAi, token, (chunkPercent) => {
+          const response = await uploadBulkItemsChunk(chunkFiles, skipAi, (chunkPercent) => {
             const overall = ((i + chunkPercent / 100) / chunks.length) * 100;
             setUploadProgress(Math.round(overall));
           });

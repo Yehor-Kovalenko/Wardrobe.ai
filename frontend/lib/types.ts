@@ -1,4 +1,8 @@
 // API response types matching backend schemas
+// ITEMS
+
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {api} from "@/lib/api";
 
 export interface ItemTags {
   colors: string[];
@@ -16,9 +20,15 @@ export interface ItemTags {
   logprobs_confidence?: number;
 }
 
+export interface WearHistoryEntry {
+  worn_at: number;
+  occasion?: string;
+  notes?: string;
+  outfit_id?: string;
+}
+
 export interface Item {
   id: string;
-  user_id: string;
   type: string;
   subtype?: string;
   name?: string;
@@ -42,6 +52,8 @@ export interface Item {
   ai_description?: string;
   wear_count: number;
   last_worn_at?: string;
+  // wear_history?: ItemWearHistory[]
+  // wash_history?: WashHistoryEntry[]
   last_suggested_at?: string;
   suggestion_count: number;
   acceptance_count: number;
@@ -54,7 +66,6 @@ export interface Item {
   is_archived: boolean;
   archived_at?: string;
   archive_reason?: string;
-  created_at: string;
   updated_at: string;
 }
 
@@ -86,30 +97,6 @@ export interface StyleProfile {
   sporty: number;
   minimalist: number;
   bold: number;
-}
-
-export interface AIEndpoint {
-  name: string;
-  url: string;
-  vision_model: string;
-  text_model: string;
-  enabled: boolean;
-}
-
-export interface Preferences {
-  color_favorites: string[];
-  color_avoid: string[];
-  style_profile: StyleProfile;
-  default_occasion: string;
-  temperature_unit: 'celsius' | 'fahrenheit';
-  temperature_sensitivity: 'low' | 'normal' | 'high';
-  cold_threshold: number;
-  hot_threshold: number;
-  layering_preference: 'minimal' | 'moderate' | 'heavy';
-  avoid_repeat_days: number;
-  prefer_underused_items: boolean;
-  variety_level: 'low' | 'moderate' | 'high';
-  ai_endpoints: AIEndpoint[];
 }
 
 // Color options for the app
@@ -201,7 +188,7 @@ export interface ItemImage {
 export interface WashHistoryEntry {
   id: string;
   item_id: string;
-  washed_at: string;
+  washed_at: number;
   method?: string;
   notes?: string;
   created_at: string;
@@ -214,14 +201,60 @@ export interface OutfitItem {
   subtype?: string;
   name?: string;
   primary_color?: string;
-  colors: string[];
-  image_path: string;
+  colors?: string[];
+  image_path?: string;
   thumbnail_path?: string;
   image_url?: string;
   thumbnail_url?: string;
   layer_type?: string;
   position: number;
 }
+
+export interface WoreInsteadItem {
+  id: string;
+  type: string;
+  name: string | null;
+  thumbnail_path: string | null;
+  thumbnail_url?: string;
+}
+
+// export interface FeedbackSummary {
+//   rating?: number;
+//   comment?: string;
+//   worn_at?: string;
+//   actually_worn?: boolean;
+//   wore_instead_items?: WoreInsteadItem[];
+// }
+
+export interface FeedbackData {
+  accepted?: boolean;
+  rating?: number;
+  comfort_rating?: number;
+  style_rating?: number;
+  comment?: string;
+  worn?: boolean;
+  worn_with_modifications?: boolean;
+  modification_notes?: string;
+  actually_worn?: boolean;
+  wore_instead_items?: string[];
+}
+
+export interface UserOutfitFeedback {
+  id?: string;
+  outfit_id: string;
+  accepted?: boolean;
+  rating?: number;
+  comfort_rating?: number;
+  style_rating?: number;
+  comment?: string;
+  worn_at?: string;
+  worn_with_modifications?: boolean;
+  modification_notes?: string;
+  actually_worn?: boolean;
+  wore_instead_items?: string[];
+}
+
+export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing';
 
 export interface WeatherData {
   temperature: number;
@@ -230,28 +263,44 @@ export interface WeatherData {
   precipitation_chance: number;
   condition: string;
 }
-
-export interface FeedbackSummary {
-  rating?: number;
-  comment?: string;
-  worn_at?: string;
-}
-
-export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing';
-
 export interface Outfit {
   id: string;
   occasion: string;
-  scheduled_for: string;
+  scheduled_for?: string; //remove? TODO
   status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
   source: OutfitSource;
+  name?: string;
+  replaces_outfit_id?: string;
+  cloned_from_outfit_id?: string;
   reasoning?: string;
   style_notes?: string;
   highlights?: string[];
   weather?: WeatherData;
   items: OutfitItem[];
-  feedback?: FeedbackSummary;
-  created_at: string;
+  feedback?: UserOutfitFeedback;
+  is_starter_suggestion?: boolean;
+  outfitPerformance?: OutfitPerformance;
+}
+
+export interface OutfitListResponse {
+  outfits: Outfit[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+}
+
+export interface OutfitFilters {
+  status?: string;
+  occasion?: string;
+  date_from?: string;
+  date_to?: string;
+  source?: string;
+  is_lookbook?: boolean;
+  is_replacement?: boolean;
+  has_source_item?: boolean;
+  search?: string;
+  cloned_from_outfit_id?: string;
 }
 
 export interface SuggestRequest {
@@ -267,6 +316,117 @@ export interface SuggestRequest {
   include_items?: string[];
 }
 
+// learning types
+export interface LearnedColorScore {
+  color: string;
+  score: number;
+  interpretation: string; // "strongly liked", "liked", "neutral", "disliked", "strongly disliked"
+}
+export interface LearnedStyleScore {
+  style: string;
+  score: number;
+}
+
+export interface OccasionPattern {
+  occasion: string;
+  preferred_colors: string[];
+  success_rate: number;
+}
+
+export interface WeatherPreference {
+  weather_type: string; // cold, cool, mild, hot
+  preferred_layers: number;
+  success_rate: number;
+}
+export interface LearningProfile {
+  id: "current";
+  has_learning_data: boolean;
+  feedback_count: number;
+  outfits_rated: number;
+  overall_acceptance_rate: number | null;
+  average_rating: number | null;
+  average_comfort_rating: number | null;
+  average_style_rating: number | null;
+  color_preferences: LearnedColorScore[];
+  style_preferences: LearnedStyleScore[];
+  occasion_patterns: OccasionPattern[];
+  weather_preferences: WeatherPreference[];
+  last_computed_at: string | null;
+}
+export interface ItemInfo {
+  id: string;
+  type: string;
+  name: string | null;
+  primary_color: string | null;
+  thumbnail_path: string | null;
+  thumbnail_url: string | null;
+}
+
+export interface ItemPair {
+  id?: number,
+  item1: ItemInfo;
+  item2: ItemInfo;
+  compatibility_score: number;
+  wear_bonus?: number;
+  times_paired: number;
+  times_accepted?: number;
+  times_rejected?: number;
+  //
+  total_rating_sum?: number;
+  rating_count?: number;
+  occasion_performance?: any;
+  weather_performance?: any;
+}
+
+export interface OutfitPerformance {
+  performance_score: number;
+  acceptance_score?: number;
+  rating_score: number;
+  wear_score: number;
+  occasion?: any;
+  weather_temp?: number;
+  weather_condition?: string;
+  item_composition?: any; //Format: {"top": "shirt", "bottom": "jeans", "shoes": "sneakers"}
+  color_composition?: any; //Format: {"primary_colors": ["blue", "gray"], "color_harmony": "complementary"}
+  was_modified?: boolean;
+  modification_notes?: string;
+
+}
+
+export interface StyleInsight {
+  id: string;
+  category: string;
+  insight_type: string;
+  title: string;
+  description: string;
+  confidence: number;
+  supporting_data?: any;
+  is_acknowledged?: boolean;
+  expires_at: string; // when this insight will expire
+}
+
+export interface PreferenceSuggestions {
+  updated: boolean;
+  suggestions?: {
+    suggested_favorite_colors?: string[];
+    suggested_avoid_colors?: string[];
+  };
+  confidence?: number | null;
+  reason?: string;
+}
+
+export interface LearningInsightsData {
+  id: "current";
+  profile: LearningProfile;
+  best_pairs: ItemPair[];
+  insights: StyleInsight[];
+  preference_suggestions: PreferenceSuggestions;
+}
+
+export interface ItemPairSuggestion {
+  item: ItemInfo;
+  compatibility_score: number;
+}
 // Pairing types
 export interface SourceItem {
   id: string;
@@ -299,4 +459,68 @@ export interface GeneratePairingsRequest {
 export interface GeneratePairingsResponse {
   generated: number;
   pairings: Pairing[];
+}
+
+// USERS and preferences
+export interface User {
+  id: "current";
+  // email: string; // do not need it for now
+  onboarding_completed: boolean;
+  //
+  display_name: string;
+  avatar_url?: string;
+  timezone: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_name?: string;
+  body_measurements?: Record<string, number | string> | null;
+}
+
+export interface UserUpdate {
+  display_name?: string;
+  timezone?: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_name?: string;
+  body_measurements?: Record<string, number | string> | null;
+}
+
+export interface AITestResult {
+  status: 'connected' | 'error';
+  available_models?: string[];
+  vision_models?: string[];
+  text_models?: string[];
+  error?: string;
+}
+
+export interface AIEndpoint {
+  name: string;
+  url: string;
+  vision_model: string;
+  text_model: string;
+  enabled: boolean;
+}
+
+export interface Preferences {
+  id: "current";
+  color_favorites: string[];
+  color_avoid: string[];
+  style_profile: StyleProfile;
+  default_occasion: string;
+  occasion_preferences: any; //TODO maybe delete? what is it?
+  //
+  temperature_unit: 'celsius' | 'fahrenheit';
+  temperature_sensitivity: 'low' | 'normal' | 'high';
+  cold_threshold: number;
+  hot_threshold: number;
+  layering_preference: 'minimal' | 'moderate' | 'heavy';
+  //
+  avoid_repeat_days: number;
+  prefer_underused_items: boolean;
+  variety_level: 'low' | 'moderate' | 'high';
+  //
+  excluded_item_ids: string[];
+  excluded_combinations: any;
+  //
+  ai_endpoints: AIEndpoint[];
 }

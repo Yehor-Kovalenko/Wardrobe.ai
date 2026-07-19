@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +33,7 @@ import { usePreferences } from '@/lib/hooks/use-preferences';
 import { displayValue, tempSymbol, TempUnit } from '@/lib/temperature';
 import { usePendingOutfits, useAcceptOutfit, useRejectOutfit } from '@/lib/hooks/use-outfits';
 import { toast } from 'sonner';
+import {useUserProfile} from "@/lib/hooks/use-user";
 
 function WeatherCard() {
   const { data: weather, isLoading, isError } = useWeather();
@@ -393,13 +393,13 @@ function QuickActionsCard() {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: user, isLoading: isLoading } = useUserProfile();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Welcome back, {session?.user?.name?.split(' ')[0] || 'User'}
+          Welcome back, {user?.display_name?.split(' ')[0] || 'User'}
         </h1>
         <p className="text-muted-foreground">
           Here&apos;s what&apos;s happening with your wardrobe

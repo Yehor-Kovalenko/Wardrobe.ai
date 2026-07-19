@@ -23,16 +23,6 @@ class NetworkError extends Error {
   }
 }
 
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-}
-
-export function getAccessToken(): string | null {
-  return accessToken;
-}
-
 async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { params, ...fetchOptions } = options;
 
@@ -47,16 +37,11 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     ...(fetchOptions.headers as Record<string, string>),
   };
 
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-
   let response: Response;
   try {
     response = await fetch(url, {
       ...fetchOptions,
       headers,
-      credentials: 'include',
     });
   } catch (err) {
     if (!navigator.onLine) {

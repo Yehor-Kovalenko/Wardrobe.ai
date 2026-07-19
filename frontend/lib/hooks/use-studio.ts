@@ -1,15 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
 
-import { api, setAccessToken } from '@/lib/api';
-import type { Outfit } from '@/lib/hooks/use-outfits';
-
-function useSetTokenIfAvailable() {
-  const { data: session } = useSession();
-  if (session?.accessToken) {
-    setAccessToken(session.accessToken as string);
-  }
-}
+import { api } from '@/lib/api';
+import type { Outfit } from '@/lib/types';
+import {studioService} from "@/lib/service/studioService";
+import {learningService} from "@/lib/service/learningService";
+import {userRepository} from "@/lib/db/repositories/userRepository";
 
 export interface StudioCreatePayload {
   items: string[];
@@ -22,10 +17,17 @@ export interface StudioCreatePayload {
 
 export function useCreateStudioOutfit() {
   const qc = useQueryClient();
-  useSetTokenIfAvailable();
   return useMutation({
-    mutationFn: (payload: StudioCreatePayload) =>
-      api.post<Outfit>('/outfits/studio', payload),
+    mutationFn: (payload: StudioCreatePayload) => {
+      let newOutfit = studioService.createOutfitFromScratch(payload);
+      if (!newOutfit) {
+        console.error("Failed to create a new outfit");
+        return null;
+      }
+
+      // @ts-ignore
+      await learningService.processFeedback(newOutfit?.id);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['outfits'] });
       qc.invalidateQueries({ queryKey: ['analytics'] });
@@ -43,7 +45,6 @@ export interface WoreInsteadPayload {
 
 export function useCreateWoreInstead(originalOutfitId: string) {
   const qc = useQueryClient();
-  useSetTokenIfAvailable();
   return useMutation({
     mutationFn: (payload: WoreInsteadPayload) =>
       api.post<Outfit>(`/outfits/${originalOutfitId}/wore-instead`, payload),
@@ -60,7 +61,6 @@ export function useCreateWoreInstead(originalOutfitId: string) {
 
 export function useCloneToLookbook(sourceOutfitId: string) {
   const qc = useQueryClient();
-  useSetTokenIfAvailable();
   return useMutation({
     mutationFn: (payload: { name: string }) =>
       api.post<Outfit>(`/outfits/${sourceOutfitId}/clone-to-lookbook`, payload),
@@ -72,7 +72,6 @@ export function useCloneToLookbook(sourceOutfitId: string) {
 
 export function useWearToday(templateId: string) {
   const qc = useQueryClient();
-  useSetTokenIfAvailable();
   return useMutation({
     mutationFn: (payload: { scheduled_for?: string | null }) =>
       api.post<Outfit>(`/outfits/${templateId}/wear-today`, payload),
@@ -91,7 +90,6 @@ export interface PatchOutfitPayload {
 
 export function usePatchOutfit() {
   const qc = useQueryClient();
-  useSetTokenIfAvailable();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: PatchOutfitPayload }) =>
       api.patch<Outfit>(`/outfits/${id}`, payload),
