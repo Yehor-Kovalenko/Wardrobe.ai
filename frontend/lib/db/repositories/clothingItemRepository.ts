@@ -25,6 +25,12 @@ export const clothingItemRepository = {
         return results.filter(item => item !== undefined && item !== null);
     },
 
+    async filter(predicate: (item: Item) => boolean) {
+        return db.clothingItems
+            .filter(predicate)
+            .toArray();
+    },
+
     async update(
         id: string,
         changes: Partial<Item>

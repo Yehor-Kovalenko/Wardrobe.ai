@@ -207,14 +207,17 @@ export interface OutfitItem {
   image_url?: string;
   thumbnail_url?: string;
   layer_type?: string;
+  wash_interval?: number;
+  wear_since_wash?: number;
+  wear_count?: number;
   position: number;
 }
 
 export interface WoreInsteadItem {
   id: string;
   type: string;
-  name: string | null;
-  thumbnail_path: string | null;
+  name?: string;
+  thumbnail_path?: string;
   thumbnail_url?: string;
 }
 
@@ -248,10 +251,11 @@ export interface UserOutfitFeedback {
   style_rating?: number;
   comment?: string;
   worn_at?: string;
+  worn?: boolean;
   worn_with_modifications?: boolean;
   modification_notes?: string;
   actually_worn?: boolean;
-  wore_instead_items?: string[];
+  wore_instead_items?: string[] | any;
 }
 
 export type OutfitSource = 'scheduled' | 'on_demand' | 'manual' | 'pairing';
@@ -269,13 +273,17 @@ export interface Outfit {
   scheduled_for?: string; //remove? TODO
   status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
   source: OutfitSource;
+  source_item?: any;
   name?: string;
   replaces_outfit_id?: string;
   cloned_from_outfit_id?: string;
   reasoning?: string;
   style_notes?: string;
+  ai_raw_response?: any;
   highlights?: string[];
   weather?: WeatherData;
+  is_lookbook?: boolean;
+  is_replacement?: false;
   items: OutfitItem[];
   feedback?: UserOutfitFeedback;
   is_starter_suggestion?: boolean;
@@ -439,12 +447,8 @@ export interface SourceItem {
   thumbnail_url?: string;
 }
 
-export interface Pairing extends Outfit {
-  source_item?: SourceItem;
-}
-
 export interface PairingListResponse {
-  pairings: Pairing[];
+  pairings: Outfit[];
   total: number;
   page: number;
   page_size: number;
@@ -457,7 +461,7 @@ export interface GeneratePairingsRequest {
 
 export interface GeneratePairingsResponse {
   generated: number;
-  pairings: Pairing[];
+  pairings: Outfit[];
 }
 
 // USERS and preferences

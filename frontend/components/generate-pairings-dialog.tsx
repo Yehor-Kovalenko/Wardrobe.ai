@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { useGeneratePairings } from '@/lib/hooks/use-pairings';
-import { Item, Pairing } from '@/lib/types';
+import { Item, Outfit } from '@/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +33,7 @@ export function GeneratePairingsDialog({
   onOpenChange,
 }: GeneratePairingsDialogProps) {
   const [numPairings, setNumPairings] = useState(3);
-  const [generatedPairings, setGeneratedPairings] = useState<Pairing[] | null>(null);
+  const [generatedPairings, setGeneratedPairings] = useState<Outfit[] | null>(null);
   const generatePairings = useGeneratePairings();
   const router = useRouter();
 

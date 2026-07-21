@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useDeletePairing } from '@/lib/hooks/use-pairings';
-import { Pairing } from '@/lib/types';
+import { Outfit } from '@/lib/types';
 import Image from 'next/image';
 
 function StarRating({ rating }: { rating: number }) {
@@ -25,7 +25,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 interface PairingCardProps {
-  pairing: Pairing;
+  pairing: Outfit;
   onFeedback?: () => void;
   onPreview?: () => void;
 }

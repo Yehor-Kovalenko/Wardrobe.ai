@@ -22,6 +22,14 @@ export const outfitRepository = {
         return db.outfits.where("replaces_outfit_id").equals(id).toArray();
     },
 
+    async filter(
+        predicate: (outfit: Outfit) => boolean
+    ) {
+        return db.outfits
+            .filter(predicate)
+            .toArray();
+    },
+
     async update(
         id: string,
         changes: Partial<Outfit>
