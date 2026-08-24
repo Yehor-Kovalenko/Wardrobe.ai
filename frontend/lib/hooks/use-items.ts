@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, NetworkError } from '@/lib/api';
 import {Item, ItemListResponse, ItemFilter, WashHistoryEntry, ItemImage, WearHistoryEntry} from '@/lib/types';
 import { chunkArray } from '@/lib/utils';
+import {itemService} from "@/lib/service/itemService";
 
 // Must not exceed the backend's MAX_BULK_UPLOAD_COUNT setting, or every chunk
 // larger than the server's limit fails with a 400.
@@ -30,7 +31,7 @@ export function useItems(filters: ItemFilter = {}, page = 1, pageSize = 20) {
       if (filters.sort_order) params.sort_order = filters.sort_order;
       if (filters.ids) params.ids = filters.ids;
 
-      return api.get<ItemListResponse>('/items', { params });
+      let items = await itemService.getList(params);
     },
     enabled: status !== 'loading',
     // Poll more frequently when items are processing (every 5 seconds), otherwise every 30 seconds

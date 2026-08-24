@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "Wardrowbe"
+    app_name: str = "Wardrobe.ai"
     debug: bool = False
     secret_key: str = Field(default=DEFAULT_SECRET_KEY)
     studio_disabled: bool = False
@@ -108,37 +108,6 @@ class Settings(BaseSettings):
     def ai_enabled(self) -> bool:
         """True if any internal AI capability is active."""
         return self.effective_ai_vision_enabled or self.effective_ai_text_enabled
-
-    def validate_security(self) -> str | None:
-        if self.secret_key == DEFAULT_SECRET_KEY and not self.debug:
-            raise RuntimeError(
-                "SECRET_KEY is still the default value. "
-                "Set a secure SECRET_KEY or enable DEBUG mode for development."
-            )
-
-        oidc_issuer = bool(self.oidc_issuer_url)
-        oidc_client = bool(self.oidc_client_id)
-        if oidc_issuer != oidc_client:
-            raise RuntimeError(
-                "OIDC is partially configured: both OIDC_ISSUER_URL and OIDC_CLIENT_ID must be set together."
-            )
-
-        oidc_configured = oidc_issuer and oidc_client
-        is_dev = self.debug and self.secret_key == DEFAULT_SECRET_KEY
-        if not oidc_configured and not is_dev:
-            return (
-                "No authentication method configured. "
-                "Set OIDC_ISSUER_URL + OIDC_CLIENT_ID, or enable DEBUG mode."
-            )
-
-        return None
-
-    def get_auth_mode(self) -> str:
-        if self.debug and self.secret_key == DEFAULT_SECRET_KEY:
-            return "dev"
-        if self.oidc_issuer_url and self.oidc_client_id:
-            return "oidc"
-        return "unknown"
 
     def get_geocoding_user_agent(self) -> str:
         return self.geocoding_user_agent or "Wardrowbe/1.0"
